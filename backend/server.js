@@ -8,11 +8,22 @@ const { buildDeck } = require('./game/deck');
 const _deck = buildDeck();
 console.log(`Deck: ${_deck.length} cards | Eights set: ${_deck.filter(c => c.halfSuit === 'eights').map(c => c.rank + '-' + c.suit).join(', ')}`);
 
+const path = require('path');
+
 const app = express();
 const server = http.createServer(app);
+
+const FRONTEND_DIST = path.join(__dirname, '../frontend/dist');
+const isProd = process.env.NODE_ENV === 'production';
+
 const io = new Server(server, {
-  cors: { origin: 'http://localhost:5173', methods: ['GET', 'POST'] },
+  cors: isProd ? false : { origin: 'http://localhost:5173', methods: ['GET', 'POST'] },
 });
+
+if (isProd) {
+  app.use(express.static(FRONTEND_DIST));
+  app.get('*', (_req, res) => res.sendFile(path.join(FRONTEND_DIST, 'index.html')));
+}
 
 const PORT = process.env.PORT || 3001;
 const rooms = new Map();
