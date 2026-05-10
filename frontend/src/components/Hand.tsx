@@ -1,11 +1,17 @@
 import type { Card } from '../types';
-import { SUIT_SYMBOLS, HALF_SUIT_LABELS, isRedSuit } from '../types';
+import { SUIT_SYMBOLS, isRedSuit } from '../types';
 
-const RANK_ORDER = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A', 'JK'];
-const SUIT_ORDER = ['spades', 'hearts', 'diamonds', 'clubs', 'red', 'black'];
+const RANK_ORDER = ['2','3','4','5','6','7','8','9','10','J','Q','K','A','JK'];
+const SUIT_ORDER = ['spades','hearts','diamonds','clubs','red','black'];
+const HALF_SUIT_ORDER = [
+  'low-spades','high-spades','low-hearts','high-hearts',
+  'low-diamonds','high-diamonds','low-clubs','high-clubs','eights',
+];
 
 function sortCards(cards: Card[]): Card[] {
   return [...cards].sort((a, b) => {
+    const hsDiff = HALF_SUIT_ORDER.indexOf(a.halfSuit) - HALF_SUIT_ORDER.indexOf(b.halfSuit);
+    if (hsDiff !== 0) return hsDiff;
     const rankDiff = RANK_ORDER.indexOf(a.rank) - RANK_ORDER.indexOf(b.rank);
     if (rankDiff !== 0) return rankDiff;
     return SUIT_ORDER.indexOf(a.suit) - SUIT_ORDER.indexOf(b.suit);
@@ -18,47 +24,56 @@ interface Props {
   onCardClick?: (card: Card) => void;
 }
 
+// Pivot point below the card — larger = tighter arc
+const PIVOT_PX = 300;
+const MAX_SPREAD_DEG = 54;
+
 export default function Hand({ cards, clickable = false, onCardClick }: Props) {
-  const grouped: Record<string, Card[]> = {};
-  for (const card of cards) {
-    (grouped[card.halfSuit] ??= []).push(card);
-  }
+  const sorted = sortCards(cards);
+  const N = sorted.length;
+  const spread = N <= 1 ? 0 : Math.min(MAX_SPREAD_DEG, N * 7);
+  const step = N > 1 ? spread / (N - 1) : 0;
 
   return (
     <div className="hand">
       <h3>
-        Your Hand <span className="card-count-badge">{cards.length}</span>
-        {clickable && <span className="hand-prompt">← click a card to give it</span>}
+        Your Hand <span className="card-count-badge">{N}</span>
+        {clickable && <span className="hand-prompt">click the card they asked for</span>}
       </h3>
-      {cards.length === 0 ? (
+      {N === 0 ? (
         <p className="empty-hand">No cards — you can still declare a set on your turn.</p>
       ) : (
-        <div className="hand-groups">
-          {Object.entries(grouped).map(([hs, hsCards]) => (
-            <div key={hs} className="hand-group">
-              <div className="hand-group-label">{HALF_SUIT_LABELS[hs]}</div>
-              <div className="hand-cards">
-                {sortCards(hsCards).map((card, i) => (
-                  <button
-                    key={i}
-                    className={`card ${isRedSuit(card.suit) ? 'red' : 'black'} ${clickable ? 'card-clickable' : ''}`}
-                    onClick={() => clickable && onCardClick?.(card)}
-                    disabled={!clickable}
-                  >
-                    <div className="card-corner card-corner-tl">
-                      <span className="card-rank">{card.rank}</span>
-                      <span className="card-suit-small">{SUIT_SYMBOLS[card.suit]}</span>
-                    </div>
-                    <span className="card-center-suit">{SUIT_SYMBOLS[card.suit]}</span>
-                    <div className="card-corner card-corner-br">
-                      <span className="card-rank">{card.rank}</span>
-                      <span className="card-suit-small">{SUIT_SYMBOLS[card.suit]}</span>
-                    </div>
-                  </button>
-                ))}
+        <div className="fan-hand">
+          {sorted.map((card, i) => {
+            const angle = -spread / 2 + i * step;
+            return (
+              <div
+                key={`${card.rank}-${card.suit}`}
+                className={`fan-wrapper${clickable ? ' fan-clickable' : ''}`}
+                style={{
+                  transform: `rotate(${angle}deg)`,
+                  transformOrigin: `50% ${PIVOT_PX}px`,
+                  zIndex: i,
+                }}
+              >
+                <button
+                  className={`card ${isRedSuit(card.suit) ? 'red' : 'black'}${clickable ? ' card-clickable' : ''}`}
+                  onClick={() => clickable && onCardClick?.(card)}
+                  disabled={!clickable}
+                >
+                  <div className="card-corner card-corner-tl">
+                    <span className="card-rank">{card.rank}</span>
+                    <span className="card-suit-small">{SUIT_SYMBOLS[card.suit]}</span>
+                  </div>
+                  <span className="card-center-suit">{SUIT_SYMBOLS[card.suit]}</span>
+                  <div className="card-corner card-corner-br">
+                    <span className="card-rank">{card.rank}</span>
+                    <span className="card-suit-small">{SUIT_SYMBOLS[card.suit]}</span>
+                  </div>
+                </button>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

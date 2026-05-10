@@ -118,8 +118,7 @@ class Room {
     asker.hand.push(card);
     asker.cardCount = asker.hand.length;
 
-    const symbol = `${card.rank}${SUIT_SYMBOLS[card.suit]}`;
-    this.gameLog.push(`${target.name} gave ${symbol} to ${asker.name}!`);
+    this.gameLog.push(`${asker.name} successfully received a card from ${target.name}.`);
     this.pendingAsk = null;
     return { ok: true };
   }
@@ -154,8 +153,7 @@ class Room {
     to.hand.push(card);
     to.cardCount = to.hand.length;
 
-    const symbol = `${card.rank}${SUIT_SYMBOLS[card.suit]}`;
-    this.gameLog.push(`[Override] ${from.name} sent ${symbol} to ${to.name}.`);
+    this.gameLog.push(`[Override] ${from.name} sent a card to ${to.name}.`);
     return { ok: true };
   }
 
@@ -189,7 +187,7 @@ class Room {
       player.cardCount = player.hand.length;
     }
 
-    if (Object.keys(this.declaredSets).length === 9) {
+    if (this.scores.A >= 5 || this.scores.B >= 5 || Object.keys(this.declaredSets).length === 9) {
       this.status = 'finished';
       if (this.scores.A > this.scores.B) {
         this.gameLog.push(`Game over! Team A wins ${this.scores.A}–${this.scores.B}!`);

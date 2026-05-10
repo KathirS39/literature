@@ -5,28 +5,56 @@
 }
 
 :root {
-  --team-a: #3b82f6;
-  --team-a-dark: #1d4ed8;
-  --team-b: #f97316;
-  --team-b-dark: #c2410c;
-  --card-red: #dc2626;
-  --card-black: #1a1a1a;
-  --green-bg: #14532d;
-  --green-surface: #166534;
-  --green-light: #15803d;
-  --modal-bg: #1e293b;
-  --modal-border: #334155;
-  --text: #f1f5f9;
-  --text-muted: #94a3b8;
-  --gold: #fbbf24;
-  --error: #ef4444;
-  --radius: 8px;
-  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  /* ── Ocean Blue palette ── */
+  --felt:          #0582ca;   /* table surface */
+  --felt-dark:     #006494;
+
+  /* Backgrounds */
+  --green-bg:      #051923;
+  --green-surface: #003554;
+  --surface:       #003554;
+  --surface-2:     #004570;
+  --surface-3:     #006494;
+
+  /* CTAs / accents → bright blue */
+  --green-light:   #00a6fb;
+  --orange:        #00a6fb;
+  --orange-light:  #33b8fc;
+  --orange-dim:    #0582ca;
+  --orange-glow:   rgba(0, 166, 251, 0.28);
+
+  /* Teams */
+  --team-a:        #00cfff;
+  --team-a-dark:   #00a6fb;
+  --team-b:        #fb923c;
+  --team-b-dark:   #c96a20;
+
+  /* Text */
+  --text:          #F0F8FF;
+  --text-muted:    #7bafd4;
+
+  /* Accents */
+  --gold:          #00a6fb;
+  --gold-light:    #33b8fc;
+  --gold-glow:     rgba(0, 166, 251, 0.3);
+  --error:         #E03040;
+
+  /* Cards */
+  --card-red:      #DC2626;
+  --card-black:    #111827;
+
+  /* Modals */
+  --modal-bg:      #030F17;
+  --modal-border:  rgba(0, 166, 251, 0.2);
+
+  --radius: 10px;
+
+  font-family: 'DM Sans', system-ui, sans-serif;
 }
 
 html, body {
   height: 100%;
-  background: var(--green-bg);
+  background: #051923;
   color: var(--text);
   -webkit-font-smoothing: antialiased;
 }
@@ -35,6 +63,7 @@ html, body {
   min-height: 100%;
   display: flex;
   flex-direction: column;
+  background: #051923;
 }
 
 button {
@@ -44,39 +73,55 @@ button {
   padding: 9px 18px;
   font-size: 0.9rem;
   font-weight: 600;
+  font-family: inherit;
   transition: filter 0.15s, transform 0.1s;
 }
 
 button:hover:not(:disabled) {
-  filter: brightness(1.1);
+  filter: brightness(1.12);
   transform: translateY(-1px);
 }
 
-button:active:not(:disabled) {
-  transform: translateY(0);
-}
+button:active:not(:disabled) { transform: translateY(0); }
 
 button:disabled {
-  opacity: 0.45;
+  opacity: 0.38;
   cursor: not-allowed;
   transform: none;
 }
 
 input, select {
-  background: #0f172a;
-  border: 1.5px solid #334155;
+  background: #051923;
+  border: 1.5px solid var(--surface-3);
   border-radius: var(--radius);
   color: var(--text);
   padding: 9px 12px;
   font-size: 0.9rem;
+  font-family: inherit;
   outline: none;
   width: 100%;
+  transition: border-color 0.15s;
 }
 
 input:focus, select:focus {
-  border-color: var(--team-a);
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px var(--gold-glow);
 }
 
-h1 { font-size: 2.4rem; font-weight: 700; letter-spacing: -0.5px; }
-h2 { font-size: 1.25rem; font-weight: 600; }
-h3 { font-size: 1rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+h1 {
+  font-family: 'Cormorant Gaunt', Georgia, serif;
+  font-size: 2.8rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+h2 { font-size: 1.2rem; font-weight: 600; }
+
+h3 {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  margin-bottom: 8px;
+}
