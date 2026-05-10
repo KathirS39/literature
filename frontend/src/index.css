@@ -1,0 +1,82 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --team-a: #3b82f6;
+  --team-a-dark: #1d4ed8;
+  --team-b: #f97316;
+  --team-b-dark: #c2410c;
+  --card-red: #dc2626;
+  --card-black: #1a1a1a;
+  --green-bg: #14532d;
+  --green-surface: #166534;
+  --green-light: #15803d;
+  --modal-bg: #1e293b;
+  --modal-border: #334155;
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --gold: #fbbf24;
+  --error: #ef4444;
+  --radius: 8px;
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+}
+
+html, body {
+  height: 100%;
+  background: var(--green-bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: var(--radius);
+  padding: 9px 18px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: filter 0.15s, transform 0.1s;
+}
+
+button:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+input, select {
+  background: #0f172a;
+  border: 1.5px solid #334155;
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 9px 12px;
+  font-size: 0.9rem;
+  outline: none;
+  width: 100%;
+}
+
+input:focus, select:focus {
+  border-color: var(--team-a);
+}
+
+h1 { font-size: 2.4rem; font-weight: 700; letter-spacing: -0.5px; }
+h2 { font-size: 1.25rem; font-weight: 600; }
+h3 { font-size: 1rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
