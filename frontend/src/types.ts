@@ -12,11 +12,17 @@ export interface Player {
   hand?: Card[];
 }
 
+export interface PendingAsk {
+  askerId: string;
+  targetId: string;
+}
+
 export interface Room {
   id: string;
   hostId: string;
   status: 'lobby' | 'playing' | 'finished';
   currentTurn: string | null;
+  pendingAsk: PendingAsk | null;
   scores: { A: number; B: number };
   declaredSets: Record<string, 'A' | 'B'>;
   gameLog: string[];

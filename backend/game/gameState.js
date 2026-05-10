@@ -1,5 +1,5 @@
 const { buildDeck, deal } = require('./deck');
-const { canAsk, validateDeclaration } = require('./rules');
+const { validateDeclaration } = require('./rules');
 
 const HALF_SUITS = [
   'low-spades', 'high-spades',
@@ -23,27 +23,41 @@ function generateCode() {
 }
 
 class Room {
-  constructor(hostId, hostName) {
+  constructor(hostId, hostName, hostPersistentId) {
     this.id = generateCode();
     this.hostId = hostId;
-    this.players = [{ id: hostId, name: hostName, team: null, hand: [], cardCount: 0 }];
+    this.hostPersistentId = hostPersistentId;
+    this.players = [{ id: hostId, persistentId: hostPersistentId, name: hostName, team: null, hand: [], cardCount: 0 }];
     this.status = 'lobby';
     this.currentTurn = null;
+    this.pendingAsk = null; // { askerId, targetId } while waiting for response
     this.scores = { A: 0, B: 0 };
     this.declaredSets = {};
     this.gameLog = [];
   }
 
-  addPlayer(id, name) {
+  addPlayer(id, name, persistentId) {
     if (this.players.length >= 6) return { error: 'Room is full' };
     if (this.status !== 'lobby') return { error: 'Game already in progress' };
     if (this.players.find(p => p.name === name)) return { error: 'That name is already taken' };
-    this.players.push({ id, name, team: null, hand: [], cardCount: 0 });
+    this.players.push({ id, persistentId, name, team: null, hand: [], cardCount: 0 });
     return { ok: true };
   }
 
-  removePlayer(id) {
-    this.players = this.players.filter(p => p.id !== id);
+  rejoinPlayer(persistentId, newSocketId) {
+    const player = this.players.find(p => p.persistentId === persistentId);
+    if (!player) return { error: 'You are not in this room' };
+
+    const oldId = player.id;
+    player.id = newSocketId;
+
+    // Keep host and turn references in sync
+    if (this.hostPersistentId === persistentId) this.hostId = newSocketId;
+    if (this.currentTurn === oldId) this.currentTurn = newSocketId;
+    if (this.pendingAsk?.askerId === oldId) this.pendingAsk.askerId = newSocketId;
+    if (this.pendingAsk?.targetId === oldId) this.pendingAsk.targetId = newSocketId;
+
+    return { ok: true, status: this.status };
   }
 
   assignTeam(playerId, team) {
@@ -67,43 +81,93 @@ class Room {
     });
     this.status = 'playing';
     this.currentTurn = this.players[0].id;
-    this.gameLog.push('Cards dealt — game started!');
+    this.gameLog.push('Cards dealt — game started! Verbally ask your opponents for cards.');
     return { ok: true };
   }
 
-  processAsk(askerId, targetId, card) {
+  // Step 1: active player picks who they are verbally asking
+  initiateAsk(askerId, targetId) {
     if (this.currentTurn !== askerId) return { error: 'Not your turn' };
+    if (this.pendingAsk) return { error: 'Already waiting for a response' };
     const asker = this.players.find(p => p.id === askerId);
     const target = this.players.find(p => p.id === targetId);
     if (!asker || !target) return { error: 'Player not found' };
+    if (asker.team === target.team) return { error: 'Cannot ask a teammate' };
     if (asker.cardCount === 0) return { error: 'You have no cards and cannot ask' };
 
-    const check = canAsk(asker, target, card);
-    if (!check.ok) return { error: check.reason };
+    this.pendingAsk = { askerId, targetId };
+    this.gameLog.push(`${asker.name} is asking ${target.name} for a card...`);
+    return { ok: true };
+  }
 
-    const targetHasCard = target.hand.some(c => c.rank === card.rank && c.suit === card.suit);
+  // Step 2a: target player clicks a card to give it
+  respondCard(responderId, card) {
+    if (!this.pendingAsk) return { error: 'No pending ask' };
+    if (this.pendingAsk.targetId !== responderId) return { error: 'You are not the one being asked' };
+
+    const asker = this.players.find(p => p.id === this.pendingAsk.askerId);
+    const target = this.players.find(p => p.id === responderId);
+    if (!asker || !target) return { error: 'Player not found' };
+
+    const hasCard = target.hand.some(c => c.rank === card.rank && c.suit === card.suit);
+    if (!hasCard) return { error: "You don't have that card" };
+
+    target.hand = target.hand.filter(c => !(c.rank === card.rank && c.suit === card.suit));
+    target.cardCount = target.hand.length;
+    asker.hand.push(card);
+    asker.cardCount = asker.hand.length;
+
     const symbol = `${card.rank}${SUIT_SYMBOLS[card.suit]}`;
+    this.gameLog.push(`${target.name} gave ${symbol} to ${asker.name}!`);
+    this.pendingAsk = null;
+    return { ok: true };
+  }
 
-    if (targetHasCard) {
-      target.hand = target.hand.filter(c => !(c.rank === card.rank && c.suit === card.suit));
-      target.cardCount = target.hand.length;
-      asker.hand.push(card);
-      asker.cardCount = asker.hand.length;
-      this.gameLog.push(`${asker.name} asked ${target.name} for ${symbol} — Got it!`);
-      return { hit: true };
-    } else {
-      this.gameLog.push(`${asker.name} asked ${target.name} for ${symbol} — Miss!`);
-      this.currentTurn = targetId;
-      return { hit: false };
-    }
+  // Step 2b: target player clicks "No" — they don't have it
+  denyAsk(responderId) {
+    if (!this.pendingAsk) return { error: 'No pending ask' };
+    if (this.pendingAsk.targetId !== responderId) return { error: 'You are not the one being asked' };
+
+    const asker = this.players.find(p => p.id === this.pendingAsk.askerId);
+    const target = this.players.find(p => p.id === responderId);
+
+    this.gameLog.push(`${target.name} said No to ${asker.name} — Miss! ${target.name}'s turn.`);
+    this.currentTurn = responderId;
+    this.pendingAsk = null;
+    return { ok: true };
+  }
+
+  // Override: any player sends any card from their hand to any other player, no turn effect
+  transferCard(fromId, toId, card) {
+    if (this.status !== 'playing') return { error: 'Game is not in progress' };
+    const from = this.players.find(p => p.id === fromId);
+    const to = this.players.find(p => p.id === toId);
+    if (!from || !to) return { error: 'Player not found' };
+    if (fromId === toId) return { error: 'Cannot send a card to yourself' };
+
+    const hasCard = from.hand.some(c => c.rank === card.rank && c.suit === card.suit);
+    if (!hasCard) return { error: "You don't have that card" };
+
+    from.hand = from.hand.filter(c => !(c.rank === card.rank && c.suit === card.suit));
+    from.cardCount = from.hand.length;
+    to.hand.push(card);
+    to.cardCount = to.hand.length;
+
+    const symbol = `${card.rank}${SUIT_SYMBOLS[card.suit]}`;
+    this.gameLog.push(`[Override] ${from.name} sent ${symbol} to ${to.name}.`);
+    return { ok: true };
   }
 
   processDeclaration(declarerId, halfSuit, mapping) {
     if (this.currentTurn !== declarerId) return { error: 'Not your turn' };
+    if (this.pendingAsk) return { error: 'Cannot declare while waiting for a response' };
     if (this.declaredSets[halfSuit]) return { error: 'That set has already been claimed' };
 
     const declarer = this.players.find(p => p.id === declarerId);
     if (!declarer) return { error: 'Player not found' };
+
+    const holdsCard = declarer.hand.some(c => c.halfSuit === halfSuit);
+    if (!holdsCard) return { error: 'You must hold at least one card from this set to declare it' };
 
     const correct = validateDeclaration(halfSuit, mapping, this.players);
     const winningTeam = correct ? declarer.team : (declarer.team === 'A' ? 'B' : 'A');
@@ -116,6 +180,12 @@ class Room {
       this.gameLog.push(`${declarer.name} correctly declared ${label}! Team ${winningTeam} scores.`);
     } else {
       this.gameLog.push(`${declarer.name} declared ${label} incorrectly. Team ${winningTeam} gets the point.`);
+    }
+
+    // Remove all cards from the declared set from every player's hand
+    for (const player of this.players) {
+      player.hand = player.hand.filter(c => c.halfSuit !== halfSuit);
+      player.cardCount = player.hand.length;
     }
 
     if (Object.keys(this.declaredSets).length === 9) {
@@ -132,8 +202,20 @@ class Room {
     return { ok: true, correct, winningTeam };
   }
 
+  setTurn(hostId, targetPlayerId) {
+    if (this.hostId !== hostId) return { error: 'Only the host can override the turn' };
+    if (this.status !== 'playing') return { error: 'Game is not in progress' };
+    const target = this.players.find(p => p.id === targetPlayerId);
+    if (!target) return { error: 'Player not found' };
+    this.currentTurn = targetPlayerId;
+    this.pendingAsk = null;
+    this.gameLog.push(`[Host] Turn set to ${target.name}.`);
+    return { ok: true };
+  }
+
   passTurn(playerId) {
     if (this.currentTurn !== playerId) return { error: 'Not your turn' };
+    if (this.pendingAsk) return { error: 'Cannot pass while waiting for a response' };
     const player = this.players.find(p => p.id === playerId);
     if (!player) return { error: 'Player not found' };
     if (player.cardCount > 0) return { error: 'You can only pass when you have no cards' };
@@ -150,6 +232,7 @@ class Room {
       hostId: this.hostId,
       status: this.status,
       currentTurn: this.currentTurn,
+      pendingAsk: this.pendingAsk,
       scores: this.scores,
       declaredSets: this.declaredSets,
       gameLog: this.gameLog,

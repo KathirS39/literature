@@ -38,9 +38,9 @@ function broadcastRoomUpdate(room) {
 io.on('connection', (socket) => {
   console.log('connected:', socket.id);
 
-  socket.on('create-room', ({ name }) => {
+  socket.on('create-room', ({ name, persistentId }) => {
     if (!name || !name.trim()) return socket.emit('error', { message: 'Name is required' });
-    const room = new Room(socket.id, name.trim());
+    const room = new Room(socket.id, name.trim(), persistentId);
     rooms.set(room.id, room);
     socket.join(room.id);
     socket.data.roomId = room.id;
@@ -48,15 +48,26 @@ io.on('connection', (socket) => {
     broadcastRoomUpdate(room);
   });
 
-  socket.on('join-room', ({ code, name }) => {
+  socket.on('join-room', ({ code, name, persistentId }) => {
     if (!name || !name.trim()) return socket.emit('error', { message: 'Name is required' });
     const room = rooms.get((code || '').toUpperCase());
     if (!room) return socket.emit('error', { message: 'Room not found — check the code and try again' });
-    const result = room.addPlayer(socket.id, name.trim());
+    const result = room.addPlayer(socket.id, name.trim(), persistentId);
     if (result.error) return socket.emit('error', { message: result.error });
     socket.join(room.id);
     socket.data.roomId = room.id;
     socket.emit('room-joined', { code: room.id });
+    broadcastRoomUpdate(room);
+  });
+
+  socket.on('rejoin-room', ({ persistentId, roomCode }) => {
+    const room = rooms.get((roomCode || '').toUpperCase());
+    if (!room) return socket.emit('rejoin-failed', { message: 'Room not found — the server may have restarted' });
+    const result = room.rejoinPlayer(persistentId, socket.id);
+    if (result.error) return socket.emit('rejoin-failed', { message: result.error });
+    socket.join(room.id);
+    socket.data.roomId = room.id;
+    socket.emit('room-rejoined', { code: room.id, status: result.status });
     broadcastRoomUpdate(room);
   });
 
@@ -78,10 +89,34 @@ io.on('connection', (socket) => {
     broadcastRoomUpdate(room);
   });
 
-  socket.on('ask-card', ({ targetId, card }) => {
+  socket.on('initiate-ask', ({ targetId }) => {
     const room = rooms.get(socket.data.roomId);
     if (!room) return socket.emit('error', { message: 'Room not found' });
-    const result = room.processAsk(socket.id, targetId, card);
+    const result = room.initiateAsk(socket.id, targetId);
+    if (result.error) return socket.emit('error', { message: result.error });
+    broadcastRoomUpdate(room);
+  });
+
+  socket.on('respond-card', ({ card }) => {
+    const room = rooms.get(socket.data.roomId);
+    if (!room) return socket.emit('error', { message: 'Room not found' });
+    const result = room.respondCard(socket.id, card);
+    if (result.error) return socket.emit('error', { message: result.error });
+    broadcastRoomUpdate(room);
+  });
+
+  socket.on('deny-ask', () => {
+    const room = rooms.get(socket.data.roomId);
+    if (!room) return socket.emit('error', { message: 'Room not found' });
+    const result = room.denyAsk(socket.id);
+    if (result.error) return socket.emit('error', { message: result.error });
+    broadcastRoomUpdate(room);
+  });
+
+  socket.on('transfer-card', ({ toId, card }) => {
+    const room = rooms.get(socket.data.roomId);
+    if (!room) return socket.emit('error', { message: 'Room not found' });
+    const result = room.transferCard(socket.id, toId, card);
     if (result.error) return socket.emit('error', { message: result.error });
     broadcastRoomUpdate(room);
   });
@@ -98,6 +133,14 @@ io.on('connection', (socket) => {
     const room = rooms.get(socket.data.roomId);
     if (!room) return socket.emit('error', { message: 'Room not found' });
     const result = room.passTurn(socket.id);
+    if (result.error) return socket.emit('error', { message: result.error });
+    broadcastRoomUpdate(room);
+  });
+
+  socket.on('set-turn', ({ targetPlayerId }) => {
+    const room = rooms.get(socket.data.roomId);
+    if (!room) return socket.emit('error', { message: 'Room not found' });
+    const result = room.setTurn(socket.id, targetPlayerId);
     if (result.error) return socket.emit('error', { message: result.error });
     broadcastRoomUpdate(room);
   });

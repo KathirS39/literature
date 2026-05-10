@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import socket from '../socket';
+import { getPersistentId, saveRoomCode } from '../session';
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -10,8 +11,8 @@ export default function Landing() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const onCreated = ({ code }: { code: string }) => navigate(`/lobby/${code}`);
-    const onJoined = ({ code }: { code: string }) => navigate(`/lobby/${code}`);
+    const onCreated = ({ code }: { code: string }) => { saveRoomCode(code); navigate(`/lobby/${code}`); };
+    const onJoined = ({ code }: { code: string }) => { saveRoomCode(code); navigate(`/lobby/${code}`); };
     const onError = ({ message }: { message: string }) => setError(message);
 
     socket.on('room-created', onCreated);
@@ -28,7 +29,7 @@ export default function Landing() {
     e.preventDefault();
     setError('');
     if (!createName.trim()) return setError('Enter your name');
-    socket.emit('create-room', { name: createName.trim() });
+    socket.emit('create-room', { name: createName.trim(), persistentId: getPersistentId() });
   }
 
   function handleJoin(e: React.FormEvent) {
@@ -36,7 +37,7 @@ export default function Landing() {
     setError('');
     if (!joinName.trim()) return setError('Enter your name');
     if (!joinCode.trim()) return setError('Enter a room code');
-    socket.emit('join-room', { code: joinCode.trim().toUpperCase(), name: joinName.trim() });
+    socket.emit('join-room', { code: joinCode.trim().toUpperCase(), name: joinName.trim(), persistentId: getPersistentId() });
   }
 
   return (

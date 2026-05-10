@@ -1,22 +1,28 @@
-import type { Player } from '../types';
+import type { Player, PendingAsk } from '../types';
 
 interface Props {
   players: Player[];
   currentTurn: string | null;
   myId: string;
+  pendingAsk: PendingAsk | null;
 }
 
-export default function PlayerList({ players, currentTurn, myId }: Props) {
+export default function PlayerList({ players, currentTurn, myId, pendingAsk }: Props) {
   const teamA = players.filter(p => p.team === 'A');
   const teamB = players.filter(p => p.team === 'B');
 
   function renderPlayer(p: Player) {
     const isActive = p.id === currentTurn;
     const isMe = p.id === myId;
+    const isAsker = pendingAsk?.askerId === p.id;
+    const isTarget = pendingAsk?.targetId === p.id;
+
     return (
       <div key={p.id} className={`player-row ${isActive ? 'active' : ''} ${isMe ? 'me' : ''}`}>
         <span className="player-row-name">
-          {isActive && <span className="turn-arrow">▶ </span>}
+          {isActive && !pendingAsk && <span className="turn-arrow">▶ </span>}
+          {isAsker && <span className="ask-arrow">💬 </span>}
+          {isTarget && <span className="ask-arrow">❓ </span>}
           {p.name}
           {isMe && <span className="you-label"> (you)</span>}
         </span>
