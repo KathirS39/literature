@@ -611,20 +611,19 @@
 
 .card-clickable {
   cursor: pointer;
-  border: 2px solid transparent;
-  transition: border-color 0.15s, transform 0.1s, box-shadow 0.15s;
+  transition: border-color 0.15s, transform 0.12s, box-shadow 0.15s;
 }
 
-.card-clickable:hover {
+.card-clickable:hover:not(:disabled) {
   border-color: var(--team-b);
-  transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(249,115,22,0.4);
+  transform: translateY(-6px) scale(1.04);
+  box-shadow: 0 8px 20px rgba(249,115,22,0.45);
 }
 
 .card-selected {
   border-color: var(--team-a) !important;
-  box-shadow: 0 4px 12px rgba(59,130,246,0.5) !important;
-  transform: translateY(-4px);
+  box-shadow: 0 6px 16px rgba(59,130,246,0.55) !important;
+  transform: translateY(-6px) scale(1.04);
 }
 
 .selected-opt {
@@ -770,32 +769,63 @@
 
 /* Playing card */
 .card {
-  width: 52px;
-  height: 72px;
+  width: 64px;
+  height: 90px;
   background: #fff;
-  border-radius: 6px;
+  border-radius: 9px;
+  position: relative;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(0,0,0,0.06);
+  border: 1.5px solid #d1d5db;
+  user-select: none;
+  overflow: hidden;
+  flex-shrink: 0;
+  cursor: default;
+}
+
+.card.red  { color: #dc2626; }
+.card.black { color: #111827; }
+
+.card-corner {
+  position: absolute;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 2px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-  border: 1.5px solid #e5e7eb;
-  user-select: none;
+  line-height: 1;
+  pointer-events: none;
 }
 
-.card.red { color: var(--card-red); }
-.card.black { color: var(--card-black); }
+.card-corner-tl {
+  top: 5px;
+  left: 6px;
+}
+
+.card-corner-br {
+  bottom: 5px;
+  right: 6px;
+  transform: rotate(180deg);
+}
 
 .card-rank {
-  font-size: 0.95rem;
-  font-weight: 700;
+  font-size: 0.88rem;
+  font-weight: 800;
   line-height: 1;
+  font-family: Georgia, 'Times New Roman', serif;
 }
 
-.card-suit {
-  font-size: 1rem;
+.card-suit-small {
+  font-size: 0.72rem;
   line-height: 1;
+  margin-top: 1px;
+}
+
+.card-center-suit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.9rem;
+  line-height: 1;
+  pointer-events: none;
 }
 
 /* ── Modals ── */
@@ -886,40 +916,7 @@
   gap: 10px;
 }
 
-.card-pick {
-  width: 60px;
-  height: 80px;
-  background: #fff;
-  border-radius: 7px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-  border: 2px solid transparent;
-  transition: border-color 0.15s, transform 0.1s;
-}
 
-.card-pick:hover:not(:disabled) {
-  border-color: var(--team-a);
-  filter: none;
-  transform: translateY(-3px);
-}
-
-.card-pick.red { color: var(--card-red); }
-.card-pick.black { color: var(--card-black); }
-
-.pick-rank {
-  font-size: 1.1rem;
-  font-weight: 700;
-  line-height: 1;
-}
-
-.pick-suit {
-  font-size: 1.2rem;
-  line-height: 1;
-}
 
 /* Declare rows */
 .declare-rows {
@@ -935,23 +932,23 @@
 }
 
 .declare-card {
-  width: 42px;
-  height: 56px;
+  width: 46px;
+  height: 64px;
   background: #fff;
-  border-radius: 6px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 0.85rem;
+  border-radius: 7px;
+  position: relative;
   flex-shrink: 0;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-  gap: 1px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+  border: 1.5px solid #d1d5db;
+  overflow: hidden;
 }
 
-.declare-card.red { color: var(--card-red); }
-.declare-card.black { color: var(--card-black); }
+.declare-card.red  { color: #dc2626; }
+.declare-card.black { color: #111827; }
+
+.declare-card .card-rank      { font-size: 0.75rem; }
+.declare-card .card-suit-small { font-size: 0.62rem; }
+.declare-card .card-center-suit { font-size: 1.2rem; }
 
 .declare-actions {
   display: flex;

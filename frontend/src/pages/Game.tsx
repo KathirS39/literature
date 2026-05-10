@@ -64,12 +64,15 @@ export default function Game() {
   const isHost = room.hostId === myId;
   const isMyTurn = room.currentTurn === myId;
   const pending = room.pendingAsk;
+  const pendingChoice = room.pendingTurnChoice;
   const amAsker = pending?.askerId === myId;
   const amTarget = pending?.targetId === myId;
+  const myTeamChooses = pendingChoice?.team === me?.team;
   const askerName = room.players.find(p => p.id === pending?.askerId)?.name ?? '';
   const targetName = room.players.find(p => p.id === pending?.targetId)?.name ?? '';
   const activeName = room.players.find(p => p.id === room.currentTurn)?.name ?? '?';
   const opponents: Player[] = room.players.filter(p => p.team !== me?.team);
+  const teammates: Player[] = room.players.filter(p => p.team === me?.team);
 
   function initiateAsk(targetId: string) { socket.emit('initiate-ask', { targetId }); }
   function respondCard(card: Card) { socket.emit('respond-card', { card }); }
@@ -79,6 +82,10 @@ export default function Game() {
   function handleDeclare(halfSuit: string, mapping: Record<string, string>) {
     socket.emit('declare-set', { halfSuit, mapping });
     setShowDeclare(false);
+  }
+
+  function handleChooseTurn(targetPlayerId: string) {
+    socket.emit('choose-turn', { targetPlayerId });
   }
 
   function handleTransfer(toId: string, card: Card) {
@@ -117,8 +124,31 @@ export default function Game() {
             </div>
           ) : (
             <>
+              {/* ── PENDING TURN CHOICE after wrong declaration ── */}
+              {pendingChoice && myTeamChooses && (
+                <div className="turn-section">
+                  <div className="turn-banner my-turn">Your team picks who goes next!</div>
+                  <p className="turn-hint">Choose a teammate (or yourself) to take the next turn:</p>
+                  <div className="opponent-btns">
+                    {teammates.map(p => (
+                      <button key={p.id} className="opponent-btn" onClick={() => handleChooseTurn(p.id)}>
+                        {p.name}
+                        <span className="opp-card-count">{p.cardCount} cards</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {pendingChoice && !myTeamChooses && (
+                <div className="turn-section">
+                  <div className="turn-banner waiting">
+                    Team {pendingChoice.team} is choosing who goes next…
+                  </div>
+                </div>
+              )}
+
               {/* ── MY TURN, no pending ask ── */}
-              {isMyTurn && !pending && (
+              {!pendingChoice && isMyTurn && !pending && (
                 <div className="turn-section">
                   <div className="turn-banner my-turn">Your turn!</div>
                   <p className="turn-hint">Verbally ask someone for a card, then select them below:</p>
@@ -142,7 +172,7 @@ export default function Game() {
               )}
 
               {/* ── MY TURN, waiting for target to respond ── */}
-              {isMyTurn && pending && amAsker && (
+              {!pendingChoice && isMyTurn && pending && amAsker && (
                 <div className="turn-section">
                   <div className="turn-banner waiting">Waiting for {targetName} to respond…</div>
                   <p className="turn-hint">Wait for them to click a card or say No on their screen.</p>
@@ -150,7 +180,7 @@ export default function Game() {
               )}
 
               {/* ── NOT MY TURN, I am the target ── */}
-              {!isMyTurn && amTarget && (
+              {!pendingChoice && !isMyTurn && amTarget && (
                 <div className="turn-section">
                   <div className="turn-banner being-asked">{askerName} is asking you for a card!</div>
                   <p className="turn-hint">
@@ -161,7 +191,7 @@ export default function Game() {
               )}
 
               {/* ── NOT MY TURN, spectating ── */}
-              {!isMyTurn && !amTarget && (
+              {!pendingChoice && !isMyTurn && !amTarget && (
                 <div className="turn-section">
                   {pending ? (
                     <div className="turn-banner waiting">{askerName} asked {targetName} — waiting for response…</div>

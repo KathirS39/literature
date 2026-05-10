@@ -17,12 +17,17 @@ export interface PendingAsk {
   targetId: string;
 }
 
+export interface PendingTurnChoice {
+  team: 'A' | 'B';
+}
+
 export interface Room {
   id: string;
   hostId: string;
   status: 'lobby' | 'playing' | 'finished';
   currentTurn: string | null;
   pendingAsk: PendingAsk | null;
+  pendingTurnChoice: PendingTurnChoice | null;
   scores: { A: number; B: number };
   declaredSets: Record<string, 'A' | 'B'>;
   gameLog: string[];

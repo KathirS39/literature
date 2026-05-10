@@ -137,6 +137,14 @@ io.on('connection', (socket) => {
     broadcastRoomUpdate(room);
   });
 
+  socket.on('choose-turn', ({ targetPlayerId }) => {
+    const room = rooms.get(socket.data.roomId);
+    if (!room) return socket.emit('error', { message: 'Room not found' });
+    const result = room.chooseTurn(socket.id, targetPlayerId);
+    if (result.error) return socket.emit('error', { message: result.error });
+    broadcastRoomUpdate(room);
+  });
+
   socket.on('set-turn', ({ targetPlayerId }) => {
     const room = rooms.get(socket.data.roomId);
     if (!room) return socket.emit('error', { message: 'Room not found' });

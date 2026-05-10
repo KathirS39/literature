@@ -30,7 +30,8 @@ class Room {
     this.players = [{ id: hostId, persistentId: hostPersistentId, name: hostName, team: null, hand: [], cardCount: 0 }];
     this.status = 'lobby';
     this.currentTurn = null;
-    this.pendingAsk = null; // { askerId, targetId } while waiting for response
+    this.pendingAsk = null;        // { askerId, targetId } while waiting for response
+    this.pendingTurnChoice = null; // { team: 'A'|'B' } — that team picks who goes next
     this.scores = { A: 0, B: 0 };
     this.declaredSets = {};
     this.gameLog = [];
@@ -179,7 +180,7 @@ class Room {
     if (correct) {
       this.gameLog.push(`${declarer.name} correctly declared ${label}! Team ${winningTeam} scores.`);
     } else {
-      this.gameLog.push(`${declarer.name} declared ${label} incorrectly. Team ${winningTeam} gets the point.`);
+      this.gameLog.push(`${declarer.name} declared ${label} incorrectly. Team ${winningTeam} gets the point — Team ${winningTeam} picks who goes next.`);
     }
 
     // Remove all cards from the declared set from every player's hand
@@ -197,9 +198,28 @@ class Room {
       } else {
         this.gameLog.push(`Game over! It's a tie ${this.scores.A}–${this.scores.B}!`);
       }
+    } else if (!correct) {
+      // Wrong declaration: opposing team picks who goes next
+      this.currentTurn = null;
+      this.pendingTurnChoice = { team: winningTeam };
     }
 
     return { ok: true, correct, winningTeam };
+  }
+
+  chooseTurn(chooserId, targetPlayerId) {
+    if (!this.pendingTurnChoice) return { error: 'No turn choice pending' };
+    const chooser = this.players.find(p => p.id === chooserId);
+    if (!chooser) return { error: 'Player not found' };
+    if (chooser.team !== this.pendingTurnChoice.team) return { error: 'Only the winning team can choose who goes next' };
+    const target = this.players.find(p => p.id === targetPlayerId);
+    if (!target) return { error: 'Target player not found' };
+    if (target.team !== this.pendingTurnChoice.team) return { error: 'Must choose a player from your own team' };
+
+    this.currentTurn = targetPlayerId;
+    this.pendingTurnChoice = null;
+    this.gameLog.push(`${target.name} will go next for Team ${target.team}.`);
+    return { ok: true };
   }
 
   setTurn(hostId, targetPlayerId) {
@@ -233,6 +253,7 @@ class Room {
       status: this.status,
       currentTurn: this.currentTurn,
       pendingAsk: this.pendingAsk,
+      pendingTurnChoice: this.pendingTurnChoice,
       scores: this.scores,
       declaredSets: this.declaredSets,
       gameLog: this.gameLog,

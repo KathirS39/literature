@@ -70,9 +70,17 @@ export default function DeclareSetModal({ room, myId, myHand, onDeclare, onClose
               const key = `${card.rank}-${card.suit}`;
               return (
                 <div key={key} className="declare-row">
-                  <span className={`declare-card ${isRedSuit(card.suit) ? 'red' : 'black'}`}>
-                    {card.rank}{SUIT_SYMBOLS[card.suit]}
-                  </span>
+                  <div className={`declare-card ${isRedSuit(card.suit) ? 'red' : 'black'}`}>
+                    <div className="card-corner card-corner-tl">
+                      <span className="card-rank">{card.rank}</span>
+                      <span className="card-suit-small">{SUIT_SYMBOLS[card.suit]}</span>
+                    </div>
+                    <span className="card-center-suit">{SUIT_SYMBOLS[card.suit]}</span>
+                    <div className="card-corner card-corner-br">
+                      <span className="card-rank">{card.rank}</span>
+                      <span className="card-suit-small">{SUIT_SYMBOLS[card.suit]}</span>
+                    </div>
+                  </div>
                   <select
                     value={mapping[key] ?? ''}
                     onChange={e => setMapping(prev => ({ ...prev, [key]: e.target.value }))}

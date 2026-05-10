@@ -64,8 +64,15 @@ export default function TransferCardModal({ myHand, allPlayers, myId, onTransfer
                         className={`card ${isRedSuit(card.suit) ? 'red' : 'black'} card-clickable ${isSelected ? 'card-selected' : ''}`}
                         onClick={() => setSelectedCard(card)}
                       >
-                        <span className="card-rank">{card.rank}</span>
-                        <span className="card-suit">{SUIT_SYMBOLS[card.suit]}</span>
+                        <div className="card-corner card-corner-tl">
+                          <span className="card-rank">{card.rank}</span>
+                          <span className="card-suit-small">{SUIT_SYMBOLS[card.suit]}</span>
+                        </div>
+                        <span className="card-center-suit">{SUIT_SYMBOLS[card.suit]}</span>
+                        <div className="card-corner card-corner-br">
+                          <span className="card-rank">{card.rank}</span>
+                          <span className="card-suit-small">{SUIT_SYMBOLS[card.suit]}</span>
+                        </div>
                       </button>
                     );
                   })}

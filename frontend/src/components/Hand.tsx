@@ -45,8 +45,15 @@ export default function Hand({ cards, clickable = false, onCardClick }: Props) {
                     onClick={() => clickable && onCardClick?.(card)}
                     disabled={!clickable}
                   >
-                    <span className="card-rank">{card.rank}</span>
-                    <span className="card-suit">{SUIT_SYMBOLS[card.suit]}</span>
+                    <div className="card-corner card-corner-tl">
+                      <span className="card-rank">{card.rank}</span>
+                      <span className="card-suit-small">{SUIT_SYMBOLS[card.suit]}</span>
+                    </div>
+                    <span className="card-center-suit">{SUIT_SYMBOLS[card.suit]}</span>
+                    <div className="card-corner card-corner-br">
+                      <span className="card-rank">{card.rank}</span>
+                      <span className="card-suit-small">{SUIT_SYMBOLS[card.suit]}</span>
+                    </div>
                   </button>
                 ))}
               </div>
