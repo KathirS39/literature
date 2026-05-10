@@ -22,7 +22,7 @@ const io = new Server(server, {
 
 if (isProd) {
   app.use(express.static(FRONTEND_DIST));
-  app.get('*', (_req, res) => res.sendFile(path.join(FRONTEND_DIST, 'index.html')));
+  app.get('/{*splat}', (_req, res) => res.sendFile(path.join(FRONTEND_DIST, 'index.html')));
 }
 
 const PORT = process.env.PORT || 3001;
