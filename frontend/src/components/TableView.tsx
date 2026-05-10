@@ -7,6 +7,7 @@ interface Props {
   pendingAsk: PendingAsk | null;
 
   canInitiateAsk: boolean; // my turn, no pending anything
+  selectedTargetId?: string | null;
   onAsk?: (targetId: string) => void;
 }
 
@@ -26,7 +27,7 @@ function tablePos(deg: number) {
 }
 
 export default function TableView({
-  players, myId, currentTurn, pendingAsk, canInitiateAsk, onAsk,
+  players, myId, currentTurn, pendingAsk, canInitiateAsk, selectedTargetId, onAsk,
 }: Props) {
   const me = players.find(p => p.id === myId);
   const others = players.filter(p => p.id !== myId);
@@ -62,14 +63,16 @@ export default function TableView({
           const isTarget   = pendingAsk?.targetId === player.id;
           const isOpponent = player.team !== me?.team;
           const askable    = canInitiateAsk && isOpponent && player.cardCount > 0;
+          const isSelected = selectedTargetId === player.id;
 
           const classes = [
             'table-seat',
-            isActive   ? 'seat-active'   : '',
-            isAsker    ? 'seat-asker'    : '',
-            isTarget   ? 'seat-target'   : '',
-            isOpponent ? 'seat-opponent' : 'seat-teammate',
-            askable    ? 'seat-askable'  : '',
+            isActive   ? 'seat-active'    : '',
+            isAsker    ? 'seat-asker'     : '',
+            isTarget   ? 'seat-target'    : '',
+            isOpponent ? 'seat-opponent'  : 'seat-teammate',
+            askable    ? 'seat-askable'   : '',
+            isSelected ? 'seat-selected'  : '',
             player.team === 'A' ? 'team-a' : player.team === 'B' ? 'team-b' : '',
           ].filter(Boolean).join(' ');
 
@@ -91,7 +94,8 @@ export default function TableView({
               <div className="seat-label">
                 <span className="seat-name">{player.name}</span>
                 <span className="seat-count">{player.cardCount} cards</span>
-                {askable && <span className="seat-ask-hint">tap to ask</span>}
+                {askable && !isSelected && <span className="seat-ask-hint">tap to ask</span>}
+                {isSelected && <span className="seat-ask-hint seat-selected-hint">selected</span>}
               </div>
             </button>
           );

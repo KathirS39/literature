@@ -19,11 +19,12 @@ export default function Game() {
   const [myHand, setMyHand] = useState<Card[]>(
     () => (location.state as { room?: Room })?.room?.players.find(p => p.id === socket.id)?.hand ?? []
   );
-  const [showDeclare, setShowDeclare]     = useState(false);
-  const [showTransfer, setShowTransfer]   = useState(false);
-  const [showSetTurn, setShowSetTurn]     = useState(false);
-  const [error, setError]                 = useState('');
-  const [missNotice, setMissNotice]       = useState('');
+  const [showDeclare, setShowDeclare]       = useState(false);
+  const [showTransfer, setShowTransfer]     = useState(false);
+  const [showSetTurn, setShowSetTurn]       = useState(false);
+  const [error, setError]                   = useState('');
+  const [missNotice, setMissNotice]         = useState('');
+  const [selectedTargetId, setSelectedTargetId] = useState<string | null>(null);
   const prevPendingAsk = useRef<PendingAsk | null>(null);
 
   const myId = socket.id ?? '';
@@ -93,6 +94,11 @@ export default function Game() {
 
   const canInitiateAsk = isMyTurn && !pending && !pendingChoice;
 
+  // Clear selection if we can no longer initiate an ask
+  useEffect(() => {
+    if (!canInitiateAsk) setSelectedTargetId(null);
+  }, [canInitiateAsk]);
+
   return (
     <div className="game">
 
@@ -136,7 +142,8 @@ export default function Game() {
                   currentTurn={room.currentTurn}
                   pendingAsk={pending}
                   canInitiateAsk={canInitiateAsk}
-                  onAsk={canInitiateAsk ? initiateAsk : undefined}
+                  selectedTargetId={selectedTargetId}
+                  onAsk={canInitiateAsk ? setSelectedTargetId : undefined}
                 />
               </div>
 
@@ -164,8 +171,32 @@ export default function Game() {
                   </div>
                 )}
 
-                {/* My turn, idle */}
-                {!pendingChoice && isMyTurn && !pending && (
+                {/* My turn, idle — player selected */}
+                {!pendingChoice && isMyTurn && !pending && selectedTargetId && (() => {
+                  const selectedPlayer = room.players.find(p => p.id === selectedTargetId);
+                  return (
+                    <div className="turn-section">
+                      <div className="turn-banner my-turn">Your Turn</div>
+                      <p className="turn-hint">
+                        Ask <strong>{selectedPlayer?.name}</strong>? Tap a different opponent to change, or confirm:
+                      </p>
+                      <div className="action-row">
+                        <button
+                          className="btn-action confirm-ask"
+                          onClick={() => { initiateAsk(selectedTargetId); setSelectedTargetId(null); }}
+                        >
+                          Ask {selectedPlayer?.name}
+                        </button>
+                        <button className="btn-action declare" onClick={() => setShowDeclare(true)}>
+                          Declare Set
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* My turn, idle — no player selected yet */}
+                {!pendingChoice && isMyTurn && !pending && !selectedTargetId && (
                   <div className="turn-section">
                     <div className="turn-banner my-turn">Your Turn</div>
                     <p className="turn-hint">Tap an opponent at the table to ask for a card</p>
